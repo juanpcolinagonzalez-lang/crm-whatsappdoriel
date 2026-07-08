@@ -1,4 +1,4 @@
-# CRM WhatsApp
+# CRM WhatsApp 
 
 CRM conversacional para vender por WhatsApp: bandeja de chats, Kanban de leads,
 agente de IA que atiende, envíos automáticos por plantillas de Meta y post-venta.
