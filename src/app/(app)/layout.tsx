@@ -7,6 +7,7 @@ const NAV = [
   { href: "/bandeja", label: "Bandeja", hint: "Chats en vivo" },
   { href: "/kanban", label: "Tablero", hint: "Leads" },
   { href: "/ajustes", label: "Ajustes", hint: "Agente y negocio" },
+  { href: "/metricas", label: "Métricas", hint: "Rendimiento del agente" },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
