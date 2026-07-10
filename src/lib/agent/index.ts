@@ -7,7 +7,7 @@ import { reviewDraft } from "./review";
 
 const MEMORY_WINDOW = 20;
 
-export type AgentResult = { text: string; usedTools: boolean };
+export type AgentResult = { text: string; usedTools: boolean; imageUrl: string | null };
 
 /**
  * Corre el agente para una conversación. Junta las tres capas de conocimiento,
@@ -60,11 +60,19 @@ export async function runAgent(
     traceLines.push(`${c.toolName}(${JSON.stringify(c.args)}) -> ${JSON.stringify(toolResults?.[i]?.result ?? {})}`);
   });
 
+      // Si se consultó un producto puntual y trajo imagen, se manda junto al texto.
+      let imageUrl: string | null = null;
+      const productCall = (toolResults ?? []).find((r: any) => r.toolName === "consultar_producto");
+      const productResult = productCall?.result as any;
+      if (productResult?.encontrado && productResult?.resultados?.length === 1) {
+              imageUrl = productResult.resultados[0]?.imagen ?? null;
+      }
+
   const finalText = await reviewDraft({
     draft: text,
     toolTrace: traceLines.join("\n"),
     systemPrompt,
   });
 
-  return { text: finalText, usedTools: (toolCalls?.length ?? 0) > 0 };
+  return { text: finalText, usedTools: (toolCalls?.length ?? 0) > 0, imageUrl };
 }
