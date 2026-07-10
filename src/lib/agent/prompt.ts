@@ -7,6 +7,7 @@ export type AgentContext = {
   brandName: string;
   contactName: string | null;
   freshStart: boolean; // ¿charla nueva? (ignora envíos automáticos)
+    purchaseHistory: string | null; // resumen de compras previas del contacto, si tiene
 };
 
 /**
@@ -39,6 +40,9 @@ ${cfg?.base_prompt || ""}
 INFORMACIÓN DEL NEGOCIO (única fuente de verdad de políticas, precios de
 referencia, medios de pago, envíos):
 ${businessInfo}
+
+HISTORIAL DEL CLIENTE (contexto para personalizar, no lo repitas literal):
+${ctx.purchaseHistory || "Sin compras previas registradas."}
 
 NOTAS ACTIVAS DEL DUEÑO (correcciones que aplican YA, respetalas al pie):
 ${activeNotes}
