@@ -53,6 +53,9 @@ export type TiendanubeOrder = {
     gateway?: string;
     total?: string;
     currency?: string;
+    shipping_tracking_number?: string;
+    shipping_tracking_url?: string;
+    shipping_carrier_name?: string;
 };
 
 export async function fetchOrder(storeId: string, token: string, orderId: string) {
