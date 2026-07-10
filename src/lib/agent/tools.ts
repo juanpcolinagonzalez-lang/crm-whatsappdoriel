@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { advanceLeadToRole } from "@/lib/pipeline/stage";
-import { getOrderStatusLabel, searchProducts, productName } from "@/lib/ecommerce/tiendanube";
+import { getOrderStatusLabel, searchProducts, productName, productImage } from "@/lib/ecommerce/tiendanube";
 import { decrypt } from "@/lib/crypto";
 
 export type ToolCtx = {
@@ -46,6 +46,7 @@ export function makeTools(ctx: ToolCtx) {
                                                               nombre: productName(p),
                                                               precio: variante?.promotional_price || variante?.price || null,
                                                               stock: variante?.stock ?? null,
+                                                      imagen: productImage(p),
                                               };
                                 });
                                 return { encontrado: true, resultados };
@@ -110,7 +111,17 @@ export function makeTools(ctx: ToolCtx) {
                   parameters: z.object({ detalle: z.string() }),
                   execute: async ({ detalle }) => {
                             await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "post_sale");
-                            return { ok: true, detalle };
+                          const urgente = /roto|no (funciona|anda|prende|enciende)|rechazad|estafa|nunca lleg|no lleg|reclamo|urgent|quiero mi dinero|devuelvan|cancelar (mi )?(pedido|compra)|estoy hart/i.test(detalle);
+                          if (urgente) {
+                                      const { data: lead } = await ctx.db
+                                          .from("leads")
+                                          .select("id")
+                                          .eq("organization_id", ctx.orgId)
+                                          .eq("contact_id", ctx.contactId)
+                                          .maybeSingle();
+                                      if (lead) await ctx.db.from("leads").update({ is_urgent: true }).eq("id", lead.id);
+                          }
+                                            return { ok: true, detalle, urgente };
                   },
           }),
 
