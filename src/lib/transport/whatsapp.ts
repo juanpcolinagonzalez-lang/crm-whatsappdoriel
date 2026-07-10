@@ -84,6 +84,15 @@ export class WhatsAppAdapter implements TransportAdapter {
           });
     }
 
+        async sendImage(phone: string, imageUrl: string, caption?: string) {
+                    return this.post({
+                                    messaging_product: "whatsapp",
+                                    to: this.ensureRecipient(phone),
+                                    type: "image",
+                                    image: caption ? { link: imageUrl, caption } : { link: imageUrl },
+                    });
+        }
+
   async sendTemplate(phone: string, name: string, language: string, components: TemplateComponent[]) {
         return this.post({
                 messaging_product: "whatsapp",
