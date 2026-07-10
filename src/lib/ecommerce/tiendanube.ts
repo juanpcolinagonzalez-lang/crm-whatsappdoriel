@@ -76,6 +76,7 @@ export type TiendanubeProduct = {
     id: number;
     name: Record<string, string> | string;
     variants?: TiendanubeVariant[];
+        images?: { id: number; src: string }[];
 };
 
 /** Busca productos por nombre/texto EN VIVO contra el catalogo real de la tienda. */
@@ -87,6 +88,11 @@ export async function searchProducts(storeId: string, token: string, query: stri
 export function productName(p: TiendanubeProduct): string {
     if (typeof p.name === "string") return p.name;
     return p.name.es ?? p.name.pt ?? p.name.en ?? Object.values(p.name)[0] ?? "";
+}
+
+/** Primera imagen del producto, si tiene. */
+export function productImage(p: TiendanubeProduct): string | null {
+        return p.images?.[0]?.src ?? null;
 }
 
 const STATUS_LABELS: Record<string, string> = {
