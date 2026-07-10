@@ -29,6 +29,9 @@ export interface TransportAdapter {
   /** Texto libre (solo dentro de la ventana de 24 h). Lanza si el envío falla. */
   sendMessage(phone: string, text: string): Promise<{ id: string }>;
 
+  /** Imagen por URL pública (dentro de la ventana de 24 h). Lanza si el envío falla. */
+  sendImage(phone: string, imageUrl: string, caption?: string): Promise<{ id: string }>;
+
   /** Plantilla aprobada (única forma de escribir fuera de la ventana). */
   sendTemplate(
     phone: string,
