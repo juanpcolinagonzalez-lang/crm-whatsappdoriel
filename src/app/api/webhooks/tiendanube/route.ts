@@ -54,12 +54,17 @@ export async function POST(req: NextRequest) {
 
     // 4) Mapear el evento a un gatillo de flujo y encolar (si hay contacto).
     const trigger = mapEventToTrigger(event.event, order);
-    if (trigger && contactId) {
-      await enqueueFlowForTrigger(db, conn.organization_id, contactId, trigger, {
-        "1": getOrderStatusLabel(order.status),
-        "2": String(order.id),
-      });
-    }
+if (trigger && contactId) {
+          const vars: Record<string, string> = {
+                      "1": getOrderStatusLabel(order.status),
+                      "2": String(order.id),
+          };
+          if (trigger === "shipped") {
+                      vars["3"] = order.shipping_carrier_name || "Andreani";
+                      vars["4"] = order.shipping_tracking_number || "";
+          }
+          await enqueueFlowForTrigger(db, conn.organization_id, contactId, trigger, vars);
+}
   } catch (err) {
     console.error("[webhook tiendanube] error:", err);
   }
