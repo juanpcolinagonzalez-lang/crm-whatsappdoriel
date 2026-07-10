@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { moveLead } from "./actions";
 
 type Stage = { id: string; label: string; role: string | null; position: number };
-type Card = { leadId: string; stageId: string; name: string; phone: string };
+type Card = { leadId: string; stageId: string; name: string; phone: string; isUrgent: boolean };
 
 // Color tenue por rol de columna (el label es editable; el color va por rol).
 const ROLE_TINT: Record<string, string> = {
@@ -66,11 +66,13 @@ export function Board({ stages, cards }: { stages: Stage[]; cards: Card[] }) {
                   draggable
                   onDragStart={() => setDragging(card.leadId)}
                   onDragEnd={() => setDragging(null)}
-                  className={`cursor-grab rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm transition active:cursor-grabbing ${
-                    dragging === card.leadId ? "opacity-40" : "hover:border-slate-300"
-                  }`}
+                                className={`cursor-grab rounded-lg border p-2.5 shadow-sm transition active:cursor-grabbing ${
+                                                  card.isUrgent ? "border-rose-400 ring-1 ring-rose-300 bg-rose-50" : "border-slate-200 bg-white"
+                                } ${
+                                                  dragging === card.leadId ? "opacity-40" : "hover:border-slate-300"
+                                }`}
                 >
-                  <div className="text-sm font-medium text-slate-800 truncate">{card.name}</div>
+                              <div className="text-sm font-medium text-slate-800 truncate">{card.isUrgent ? "🔴 " : ""}{card.name}</div>
                   <div className="text-xs text-slate-400">{card.phone}</div>
                 </div>
               ))}
