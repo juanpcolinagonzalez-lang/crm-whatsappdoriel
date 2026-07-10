@@ -7,7 +7,7 @@ export type AgentContext = {
   brandName: string;
   contactName: string | null;
   freshStart: boolean; // ¿charla nueva? (ignora envíos automáticos)
-    purchaseHistory: string | null; // resumen de compras previas del contacto, si tiene
+    purchaseHistory?: string | null; // resumen de compras previas del contacto, si tiene
 };
 
 /**
