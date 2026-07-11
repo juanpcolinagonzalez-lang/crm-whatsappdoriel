@@ -57,3 +57,14 @@ export async function sendReply(conversationId: string, text: string): Promise<{
     return { error: "No se pudo enviar. Reintentá en un momento." };
   }
 }
+
+
+/**
+ * Devuelve la conversacion al agente antes de que se cumplan las 12 h de
+ * pausa automatica. Se usa cuando el dueno ya resolvio el tema a mano.
+ */
+export async function reactivateAgent(conversationId: string): Promise<void> {
+    const supabase = createClient();
+    await supabase.from("conversations").update({ bot_paused_until: null }).eq("id", conversationId);
+    revalidatePath("/bandeja");
+}
