@@ -1,7 +1,7 @@
 import { generateText } from "ai";
 import { withModelFallback } from "./models";
 
-const REVIEW_TIMEOUT_MS = 6000;
+const REVIEW_TIMEOUT_MS = 9000;
 
 const FALLBACK_MESSAGE = "Dejame confirmarlo con el equipo y te escribo en un toque ";
 
