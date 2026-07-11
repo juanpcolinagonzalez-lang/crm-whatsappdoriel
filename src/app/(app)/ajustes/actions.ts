@@ -28,6 +28,7 @@ export async function saveBusinessConfig(_prev: unknown, formData: FormData): Pr
     .update({
       agent_name: String(formData.get("agent_name") ?? ""),
       brand_name: String(formData.get("brand_name") ?? ""),
+            owner_notify_phone: String(formData.get("owner_notify_phone") ?? ""),
       base_prompt: String(formData.get("base_prompt") ?? ""),
       business_info,
       followup_enabled: formData.get("followup_enabled") === "on",
