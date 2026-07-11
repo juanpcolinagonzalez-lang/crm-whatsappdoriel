@@ -9,6 +9,7 @@ type Cfg = {
   base_prompt: string;
   business_info: unknown;
   followup_enabled: boolean;
+    owner_notify_phone: string | null;
 };
 
 function Save() {
@@ -44,6 +45,15 @@ export function ConfigForm({ cfg }: { cfg: Cfg }) {
           />
         </label>
       </div>
+
+                                 <label className="block space-y-1.5">
+                                         <span className="block text-xs font-medium text-slate-600">WhatsApp del dueño (avisos de derivación a humano)</span>
+                                         <input
+                                                     name="owner_notify_phone" defaultValue={cfg.owner_notify_phone ?? ""}
+                                                     placeholder="Ej: 5491112345678"
+                                                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-600/20"
+                                                   />
+                                 </label>
 
       <label className="block space-y-1.5">
         <span className="block text-xs font-medium text-slate-600">Prompt base (identidad, tono, estilo)</span>
