@@ -113,7 +113,7 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
                             <div className="flex items-center gap-2">
                                               <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
                                                                   Bot en pausa · lo atiende una persona
-                                              </span
+                                              </span>
                                               <form action={reactivateAgent.bind(null, active.id)}>
                                                                   <button
                                                                                           type="submit"
