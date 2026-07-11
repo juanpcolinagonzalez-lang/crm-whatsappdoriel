@@ -33,7 +33,7 @@ export async function runAgent(
 
   const messages: CoreMessage[] = (history ?? [])
     .reverse()
-    .filter((m) => m.body)
+    .filter((m) => m.body && m.body.trim().length > 0)
     .map((m): CoreMessage => {
       const kind = (m.raw as any)?.kind;
       if (kind === "marketing" || kind === "followup") {
