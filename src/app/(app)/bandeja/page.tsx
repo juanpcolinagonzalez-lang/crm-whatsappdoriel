@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { RealtimeRefresher } from "./RealtimeRefresher";
 import { Composer } from "./Composer";
+import { reactivateAgent } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -109,10 +110,20 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
                 <div className="text-xs text-slate-400">{(active as any).contact?.phone}</div>
               </div>
               {paused && (
-                <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                  Bot en pausa \u00b7 lo atiende una persona
-                </span>
-              )}
+                            <div className="flex items-center gap-2">
+                                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                                                                  Bot en pausa · lo atiende una persona
+                                              </span
+                                              <form action={reactivateAgent.bind(null, active.id)}>
+                                                                  <button
+                                                                                          type="submit"
+                                                                                          className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-teal-800"
+                                                                                        >
+                                                                                        Reactivar agente
+                                                                  </button>
+                                              </form>
+                            </div>
+                          )}
             </header>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-2">
