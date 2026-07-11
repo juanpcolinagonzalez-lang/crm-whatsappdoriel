@@ -10,7 +10,7 @@ export default async function AjustesPage() {
 
   const { data: cfg } = await supabase
     .from("business_config")
-    .select("agent_name, brand_name, base_prompt, business_info, followup_enabled")
+    .select("agent_name, brand_name, base_prompt, business_info, followup_enabled, owner_notify_phone")
     .maybeSingle();
 
   const { data: notes } = await supabase
