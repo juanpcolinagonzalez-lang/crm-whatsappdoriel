@@ -6,6 +6,7 @@ import { processInbound } from "@/lib/inbound/process";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // margen para el debounce de ráfagas + el agente
 
 /** GET = handshake de verificación de Meta. */
 export async function GET(req: NextRequest) {
