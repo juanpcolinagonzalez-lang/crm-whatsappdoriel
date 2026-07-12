@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { sendReply } from "./actions";
 
-export function Composer({ conversationId }: { conversationId: string }) {
+export type QuickReply = { label: string; text: string };
+
+export function Composer({
+  conversationId,
+  quickReplies = [],
+}: {
+  conversationId: string;
+  quickReplies?: QuickReply[];
+}) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -28,6 +36,20 @@ export function Composer({ conversationId }: { conversationId: string }) {
   return (
     <div className="border-t border-slate-200 bg-white p-3">
       {error && <p className="mb-2 rounded-md bg-red-50 px-3 py-1.5 text-xs text-red-700">{error}</p>}
+      {quickReplies.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {quickReplies.map((qr) => (
+            <button
+              key={qr.label}
+              type="button"
+              onClick={() => setText(qr.text)}
+              className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700"
+            >
+              {qr.label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex items-end gap-2">
         <textarea
           value={text}
