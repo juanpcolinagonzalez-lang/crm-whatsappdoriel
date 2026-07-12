@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { RealtimeRefresher } from "./RealtimeRefresher";
 import { Composer } from "./Composer";
+import { ConversationList } from "./ConversationList";
 import { reactivateAgent } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
 
   const { data: conversations } = await supabase
     .from("conversations")
-    .select("id, last_message_at, bot_paused_until, contact:contacts(profile_name, phone)")
+    .select("id, last_message_at, bot_paused_until, contact:contacts(id, profile_name, phone)")
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(50);
 
@@ -39,6 +39,36 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
     }
   }
 
+  // Etiqueta de urgencia: cruzamos los contact_id con leads.is_urgent para
+  // marcar en la lista quién necesita atención prioritaria (dolor típico de
+  // soporte: reclamos que se pierden entre consultas normales).
+  const contactIds = (conversations ?? [])
+    .map((c) => (c as any).contact?.id)
+    .filter(Boolean);
+  const urgentContactIds = new Set<string>();
+  if (contactIds.length) {
+    const { data: urgentLeads } = await supabase
+      .from("leads")
+      .select("contact_id")
+      .in("contact_id", contactIds)
+      .eq("is_urgent", true);
+    for (const l of urgentLeads ?? []) urgentContactIds.add((l as any).contact_id);
+  }
+
+  const listItems = (conversations ?? []).map((c) => {
+    const contact = (c as any).contact;
+    return {
+      id: c.id,
+      name: contact?.profile_name || contact?.phone || "Sin nombre",
+      phone: contact?.phone ?? "",
+      preview: previews.get(c.id) || "",
+      time: timeLabel(c.last_message_at),
+      isPaused: !!(c.bot_paused_until && new Date(c.bot_paused_until) > new Date()),
+      isUrgent: contact?.id ? urgentContactIds.has(contact.id) : false,
+    };
+  });
+  const urgentCount = listItems.filter((c) => c.isUrgent).length;
+
   const { data: thread } = activeId
     ? await supabase
         .from("messages")
@@ -51,48 +81,31 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
   const active = (conversations ?? []).find((c) => c.id === activeId);
   const paused = active?.bot_paused_until && new Date(active.bot_paused_until) > new Date();
 
+  // Respuestas rápidas para el asesor humano: se arman con los mismos datos
+  // que ya usa el agente (business_info), nunca con texto inventado.
+  const { data: cfg } = await supabase.from("business_config").select("business_info").maybeSingle();
+  const info = (cfg?.business_info ?? {}) as any;
+  const quickReplies = [
+    info?.envios?.costo ? { label: "Envío", text: info.envios.costo } : null,
+    info?.pagos?.transferencia_deposito ? { label: "Transferencia", text: info.pagos.transferencia_deposito } : null,
+    info?.pagos?.tarjetas_bancarias ? { label: "Cuotas", text: info.pagos.tarjetas_bancarias } : null,
+    { label: "Gracias", text: "¡Gracias a vos! Cualquier cosa que necesites, escribinos 🙌" },
+  ].filter(Boolean) as { label: string; text: string }[];
+
   return (
     <div className="h-screen flex">
       <RealtimeRefresher />
 
       <div className="w-80 shrink-0 border-r border-slate-200 bg-white flex flex-col">
-        <header className="px-4 py-3 border-b border-slate-200">
+        <header className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
           <h1 className="text-sm font-semibold text-slate-900">Bandeja</h1>
-        </header>
-        <ul className="flex-1 overflow-y-auto divide-y divide-slate-100">
-          {(conversations ?? []).length === 0 && (
-            <li className="p-6 text-sm text-slate-400">
-              Todavía no hay conversaciones. Cuando un cliente escriba, aparece acá.
-            </li>
+          {urgentCount > 0 && (
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-medium text-rose-700">
+              {urgentCount} urgente{urgentCount > 1 ? "s" : ""}
+            </span>
           )}
-          {(conversations ?? []).map((c) => {
-            const contact = (c as any).contact;
-            const name = contact?.profile_name || contact?.phone || "Sin nombre";
-            const isActive = c.id === activeId;
-            const isPaused = c.bot_paused_until && new Date(c.bot_paused_until) > new Date();
-            return (
-              <li key={c.id}>
-                <Link
-                  href={`/bandeja?c=${c.id}`}
-                  className={`block px-4 py-3 transition ${isActive ? "bg-teal-50" : "hover:bg-slate-50"}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-slate-800 truncate">{name}</span>
-                    <span className="text-xs text-slate-400 shrink-0">{timeLabel(c.last_message_at)}</span>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-2">
-                    <span className="text-xs text-slate-500 truncate">{previews.get(c.id) || "\u2014"}</span>
-                    {isPaused && (
-                      <span className="ml-auto shrink-0 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                        Humano
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        </header>
+        <ConversationList conversations={listItems} activeId={activeId} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col bg-slate-50">
@@ -110,20 +123,20 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
                 <div className="text-xs text-slate-400">{(active as any).contact?.phone}</div>
               </div>
               {paused && (
-                            <div className="flex items-center gap-2">
-                                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
-                                                                  Bot en pausa · lo atiende una persona
-                                              </span>
-                                              <form action={reactivateAgent.bind(null, active.id)}>
-                                                                  <button
-                                                                                          type="submit"
-                                                                                          className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-teal-800"
-                                                                                        >
-                                                                                        Reactivar agente
-                                                                  </button>
-                                              </form>
-                            </div>
-                          )}
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    Bot en pausa · lo atiende una persona
+                  </span>
+                  <form action={reactivateAgent.bind(null, active.id)}>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-teal-800"
+                    >
+                      Reactivar agente
+                    </button>
+                  </form>
+                </div>
+              )}
             </header>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-2">
@@ -157,7 +170,7 @@ export default async function BandejaPage({ searchParams }: { searchParams: { c?
               })}
             </div>
 
-            <Composer conversationId={active.id} />
+            <Composer conversationId={active.id} quickReplies={quickReplies} />
           </>
         )}
       </div>
