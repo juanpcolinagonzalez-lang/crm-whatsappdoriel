@@ -7,10 +7,10 @@ import { decrypt } from "@/lib/crypto";
 import { getTransport } from "@/lib/transport";
 
 export type ToolCtx = {
-      db: SupabaseClient;
-      orgId: string;
-      contactId: string;
-      conversationId: string;
+  db: SupabaseClient;
+  orgId: string;
+  contactId: string;
+  conversationId: string;
 };
 
 /**
@@ -19,193 +19,219 @@ export type ToolCtx = {
  * sin contarle nada al cliente.
  */
 export function makeTools(ctx: ToolCtx) {
-      return {
-              consultar_producto: tool({
-                        description:
-                                    "Consulta precio, stock y disponibilidad de un producto EN VIVO. Usar SIEMPRE antes de informar cualquiera de esos datos; nunca de memoria. Tambien sirve para venta cruzada: si el cliente ya eligio algo, se puede volver a llamar con un producto complementario (ej. tiras led para quien pidio una lampara) y ofrecerlo solo si aparece de verdad en el catalogo.",
-                        parameters: z.object({
-                                    consulta: z.string().describe("nombre o descripcion del producto que pide el cliente, o del complementario a sugerir"),
-                        }),
-                        execute: async ({ consulta }) => {
-                                    const { data: conn } = await ctx.db
-                                      .from("ecommerce_connections")
-                                      .select("store_id, access_token_enc")
-                                      .eq("organization_id", ctx.orgId)
-                                      .eq("platform", "tiendanube")
-                                      .maybeSingle();
-                                    if (!conn) return { encontrado: false, motivo: "catalogo no conectado; deriva a una persona" };
+  return {
+    consultar_producto: tool({
+      description:
+        "Consulta precio, stock y disponibilidad de un producto EN VIVO. Usar SIEMPRE antes de informar cualquiera de esos datos; nunca de memoria. Tambien sirve para venta cruzada: si el cliente ya eligio algo, se puede volver a llamar con un producto complementario (ej. tiras led para quien pidio una lampara) y ofrecerlo solo si aparece de verdad en el catalogo.",
+      parameters: z.object({
+        consulta: z.string().describe("nombre o descripcion del producto que pide el cliente, o del complementario a sugerir"),
+      }),
+      execute: async ({ consulta }) => {
+        const { data: conn } = await ctx.db
+          .from("ecommerce_connections")
+          .select("store_id, access_token_enc")
+          .eq("organization_id", ctx.orgId)
+          .eq("platform", "tiendanube")
+          .maybeSingle();
+        if (!conn) return { encontrado: false, motivo: "catalogo no conectado; deriva a una persona" };
 
-                          try {
-                                        const token = decrypt(conn.access_token_enc);
-                                        const productos = await searchProducts(conn.store_id, token, consulta);
-                                        if (!productos.length) {
-                                                        return { encontrado: false, motivo: "no se encontro ese producto en el catalogo" };
-                                        }
-                                        const resultados = productos.slice(0, 3).map((p) => {
-                                                        const variante = p.variants?.[0];
-                                                        return {
-                                                                          nombre: productName(p),
-                                                                          precio: variante?.promotional_price || variante?.price || null,
-                                                                          stock: variante?.stock ?? null,
-                                                                          imagen: productImage(p),
-                                                        };
-                                        });
-                                        return { encontrado: true, resultados };
-                          } catch (err) {
-                                        return { encontrado: false, motivo: "error consultando el catalogo; deriva a una persona" };
-                          }
-                        },
-              }),
+        try {
+          const token = decrypt(conn.access_token_enc);
+          const productos = await searchProducts(conn.store_id, token, consulta);
+          if (!productos.length) {
+            return { encontrado: false, motivo: "no se encontro ese producto en el catalogo" };
+          }
+          const resultados = productos.slice(0, 3).map((p) => {
+            const variante = p.variants?.[0];
+            return {
+              nombre: productName(p),
+              precio: variante?.promotional_price || variante?.price || null,
+              stock: variante?.stock ?? null,
+              imagen: productImage(p),
+            };
+          });
+          return { encontrado: true, resultados };
+        } catch (err) {
+          return { encontrado: false, motivo: "error consultando el catalogo; deriva a una persona" };
+        }
+      },
+    }),
 
-              consultar_promociones: tool({
-                        description:
-                                    "Consulta EN VIVO que productos tienen descuento/promo activa en el catalogo. Usar cuando el cliente pregunta en general por ofertas, promos o descuentos (sin nombrar un producto puntual). No inventar promos que no aparezcan aca.",
-                        parameters: z.object({}),
-                        execute: async () => {
-                                    const { data: conn } = await ctx.db
-                                      .from("ecommerce_connections")
-                                      .select("store_id, access_token_enc")
-                                      .eq("organization_id", ctx.orgId)
-                                      .eq("platform", "tiendanube")
-                                      .maybeSingle();
-                                    if (!conn) return { hay: false, motivo: "catalogo no conectado; deriva a una persona" };
+    consultar_promociones: tool({
+      description:
+        "Consulta EN VIVO que productos tienen descuento/promo activa en el catalogo. Usar cuando el cliente pregunta en general por ofertas, promos o descuentos (sin nombrar un producto puntual). No inventar promos que no aparezcan aca.",
+      parameters: z.object({}),
+      execute: async () => {
+        const { data: conn } = await ctx.db
+          .from("ecommerce_connections")
+          .select("store_id, access_token_enc")
+          .eq("organization_id", ctx.orgId)
+          .eq("platform", "tiendanube")
+          .maybeSingle();
+        if (!conn) return { hay: false, motivo: "catalogo no conectado; deriva a una persona" };
 
-                          try {
-                                        const token = decrypt(conn.access_token_enc);
-                                        const promos = await fetchPromotions(conn.store_id, token);
-                                        if (!promos.length) return { hay: false, motivo: "no hay productos con descuento activo en este momento" };
-                                        const resultados = promos.slice(0, 5).map((p) => {
-                                                        const v = p.variants?.[0];
-                                                        return {
-                                                                          nombre: productName(p),
-                                                                          precioOriginal: v?.price ?? null,
-                                                                          precioPromo: v?.promotional_price ?? null,
-                                                                          imagen: productImage(p),
-                                                        };
-                                        });
-                                        return { hay: true, resultados };
-                          } catch (err) {
-                                        return { hay: false, motivo: "error consultando el catalogo; deriva a una persona" };
-                          }
-                        },
-              }),
+        try {
+          const token = decrypt(conn.access_token_enc);
+          const promos = await fetchPromotions(conn.store_id, token);
+          if (!promos.length) return { hay: false, motivo: "no hay productos con descuento activo en este momento" };
+          const resultados = promos.slice(0, 5).map((p) => {
+            const v = p.variants?.[0];
+            return {
+              nombre: productName(p),
+              precioOriginal: v?.price ?? null,
+              precioPromo: v?.promotional_price ?? null,
+              imagen: productImage(p),
+            };
+          });
+          return { hay: true, resultados };
+        } catch (err) {
+          return { hay: false, motivo: "error consultando el catalogo; deriva a una persona" };
+        }
+      },
+    }),
 
-              estado_pedido: tool({
-                        description:
-                                    "Consulta el estado de un pedido EN VIVO. Si no devuelve nada, NUNCA digas que el pedido no existe: tranquiliza al cliente (el equipo lo confirma, el seguimiento llega por mail).",
-                        parameters: z.object({
-                                    referencia: z.string().optional().describe("numero de pedido o mail si el cliente lo da"),
-                        }),
-                        execute: async ({ referencia }) => {
-                                    const { data: order } = await ctx.db
-                                      .from("orders")
-                                      .select("status_raw, external_id")
-                                      .eq("organization_id", ctx.orgId)
-                                      .eq("contact_id", ctx.contactId)
-                                      .order("updated_at", { ascending: false })
-                                      .limit(1)
-                                      .maybeSingle();
-                                    if (!order) {
-                                                  return { encontrado: false, instruccion: "tranquilizar; NO decir que no existe" };
-                                    }
-                                    return {
-                                                  encontrado: true,
-                                                  estado: getOrderStatusLabel(order.status_raw),
-                                                  pedido: order.external_id,
-                                    };
-                        },
-              }),
+    estado_pedido: tool({
+      description:
+        "Consulta el estado de un pedido EN VIVO: estado general, si el pago esta confirmado o todavia pendiente de revision, y si la entrega es por envio o por retiro en el local (con horario y direccion reales). Si no devuelve nada, NUNCA digas que el pedido no existe: tranquiliza al cliente (el equipo lo confirma, el seguimiento llega por mail). NUNCA inventes un link de checkout o de seguimiento: no existe esa herramienta.",
+      parameters: z.object({
+        referencia: z.string().optional().describe("numero de pedido o mail si el cliente lo da"),
+      }),
+      execute: async ({ referencia }) => {
+        const { data: order } = await ctx.db
+          .from("orders")
+          .select("status_raw, external_id, data")
+          .eq("organization_id", ctx.orgId)
+          .eq("contact_id", ctx.contactId)
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (!order) {
+          return { encontrado: false, instruccion: "tranquilizar; NO decir que no existe" };
+        }
 
-              derivar_a_persona: tool({
-                        description:
-                                    "Deriva la charla a una persona del equipo. Llamar EN EL MISMO TURNO en que le decis al cliente que lo vas a pasar con alguien.",
-                        parameters: z.object({ motivo: z.string() }),
-                        execute: async ({ motivo }) => {
-                                    await ctx.db
-                                      .from("conversations")
-                                      .update({ bot_paused_until: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() })
-                                      .eq("id", ctx.conversationId);
+        const raw = (order.data ?? {}) as Record<string, unknown>;
+        const paymentStatus = String(raw.payment_status ?? "");
+        const shippingStatus = String(raw.shipping_status ?? "");
+        const pickupType = String(raw.shipping_pickup_type ?? "");
 
-                          try {
-                                        const { data: cfg } = await ctx.db
-                                          .from("business_config")
-                                          .select("owner_notify_phone")
-                                          .eq("organization_id", ctx.orgId)
-                                          .maybeSingle();
-                                        const ownerPhone = cfg?.owner_notify_phone;
-                                        if (ownerPhone) {
-                                                        const { data: contact } = await ctx.db
-                                                          .from("contacts")
-                                                          .select("profile_name, phone")
-                                                          .eq("id", ctx.contactId)
-                                                          .maybeSingle();
-                                                        const quien = contact?.profile_name || contact?.phone || "Un cliente";
-                                                        const transport = getTransport("whatsapp");
-                                                        await transport.sendMessage(ownerPhone, "Aviso: " + quien + " pidio hablar con una persona. Motivo: " + motivo);
-                                        }
-                          } catch {
-                                        // No se pudo avisar (ventana cerrada, numero mal configurado, etc.). Seguimos igual.
-                          }
+        const pago =
+          paymentStatus === "paid"
+            ? "confirmado"
+            : paymentStatus === "pending"
+            ? "pendiente_de_revision"
+            : paymentStatus === "voided" || paymentStatus === "refunded"
+            ? "anulado"
+            : "en_revision";
 
-                          return { derivado: true, motivo };
-                        },
-              }),
+        const tipoEntrega = pickupType === "pickup" ? "retiro_en_local" : "envio";
+        const listoParaRetirar =
+          tipoEntrega === "retiro_en_local" && (shippingStatus === "packed" || shippingStatus === "fulfilled");
 
-              marcar_interes: tool({
-                        description:
-                                    "SILENCIOSO. Llamar cuando hay intencion REAL de compra: pregunta como pagar, envio a su ciudad, stock de un modelo elegido, 'lo quiero', pide el link. NO por un saludo ni una pregunta suelta de precio.",
-                        parameters: z.object({}),
-                        execute: async () => {
-                                    await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "interested");
-                                    return { ok: true };
-                        },
-              }),
+        return {
+          encontrado: true,
+          estado: getOrderStatusLabel(order.status_raw),
+          pedido: order.external_id,
+          pago,
+          tipo_entrega: tipoEntrega,
+          listo_para_retirar: listoParaRetirar,
+          instruccion:
+            tipoEntrega === "retiro_en_local"
+              ? "usar SOLO la direccion y horario de retiro que estan en la informacion del negocio; nunca inventar otros"
+              : undefined,
+        };
+      },
+    }),
 
-              abrir_postventa: tool({
-                        description:
-                                    "SILENCIOSO. Llamar SOLO ante un problema real: queja, cambio, garantia, demora, devolucion, producto fallado. Un agradecimiento o una compra NO es un problema.",
-                        parameters: z.object({ detalle: z.string() }),
-                        execute: async ({ detalle }) => {
-                                    await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "post_sale");
-                                    const urgente = /roto|no (funciona|anda|prende|enciende)|rechazad|estafa|nunca lleg|no lleg|reclamo|urgent|quiero mi dinero|devuelvan|cancelar (mi )?(pedido|compra)|estoy hart/i.test(detalle);
-                                    if (urgente) {
-                                                  const { data: lead } = await ctx.db
-                                                    .from("leads")
-                                                    .select("id")
-                                                    .eq("organization_id", ctx.orgId)
-                                                    .eq("contact_id", ctx.contactId)
-                                                    .maybeSingle();
-                                                  if (lead) await ctx.db.from("leads").update({ is_urgent: true }).eq("id", lead.id);
-                                    }
-                                    return { ok: true, detalle, urgente };
-                        },
-              }),
+    derivar_a_persona: tool({
+      description:
+        "Deriva la charla a una persona del equipo. Llamar EN EL MISMO TURNO en que le decis al cliente que lo vas a pasar con alguien.",
+      parameters: z.object({ motivo: z.string() }),
+      execute: async ({ motivo }) => {
+        await ctx.db
+          .from("conversations")
+          .update({ bot_paused_until: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() })
+          .eq("id", ctx.conversationId);
 
-              marcar_cliente_feliz: tool({
-                        description:
-                                    "SILENCIOSO. Llamar SOLO si el cliente YA recibio el producto y esta conforme. La cortesia de quien todavia espera ('dale, gracias!') no cuenta.",
-                        parameters: z.object({}),
-                        execute: async () => {
-                                    await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "happy");
-                                    return { ok: true };
-                        },
-              }),
+        try {
+          const { data: cfg } = await ctx.db
+            .from("business_config")
+            .select("owner_notify_phone")
+            .eq("organization_id", ctx.orgId)
+            .maybeSingle();
+          const ownerPhone = cfg?.owner_notify_phone;
+          if (ownerPhone) {
+            const { data: contact } = await ctx.db
+              .from("contacts")
+              .select("profile_name, phone")
+              .eq("id", ctx.contactId)
+              .maybeSingle();
+            const quien = contact?.profile_name || contact?.phone || "Un cliente";
+            const transport = getTransport("whatsapp");
+            await transport.sendMessage(ownerPhone, "Aviso: " + quien + " pidio hablar con una persona. Motivo: " + motivo);
+          }
+        } catch {
+          // No se pudo avisar (ventana cerrada, numero mal configurado, etc.). Seguimos igual.
+        }
 
-              etiquetar: tool({
-                        description:
-                                    "SILENCIOSO. Aplica una etiqueta que YA existe. Nunca inventar etiquetas nuevas.",
-                        parameters: z.object({ etiqueta: z.string() }),
-                        execute: async ({ etiqueta }) => {
-                                    const { data: tag } = await ctx.db
-                                      .from("tags")
-                                      .select("id")
-                                      .eq("organization_id", ctx.orgId)
-                                      .eq("name", etiqueta)
-                                      .maybeSingle();
-                                    if (!tag) return { ok: false, motivo: "la etiqueta no existe; no se inventa" };
-                                    await ctx.db.from("contact_tags").upsert({ contact_id: ctx.contactId, tag_id: tag.id });
-                                    return { ok: true };
-                        },
-              }),
-      };
+        return { derivado: true, motivo };
+      },
+    }),
+
+    marcar_interes: tool({
+      description:
+        "SILENCIOSO. Llamar cuando hay intencion REAL de compra: pregunta como pagar, envio a su ciudad, stock de un modelo elegido, 'lo quiero', pide el link. NO por un saludo ni una pregunta suelta de precio.",
+      parameters: z.object({}),
+      execute: async () => {
+        await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "interested");
+        return { ok: true };
+      },
+    }),
+
+    abrir_postventa: tool({
+      description:
+        "SILENCIOSO. Llamar SOLO ante un problema real: queja, cambio, garantia, demora, devolucion, producto fallado. Un agradecimiento o una compra NO es un problema.",
+      parameters: z.object({ detalle: z.string() }),
+      execute: async ({ detalle }) => {
+        await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "post_sale");
+        const urgente = /roto|no (funciona|anda|prende|enciende)|rechazad|estafa|nunca lleg|no lleg|reclamo|urgent|quiero mi dinero|devuelvan|cancelar (mi )?(pedido|compra)|estoy hart/i.test(detalle);
+        if (urgente) {
+          const { data: lead } = await ctx.db
+            .from("leads")
+            .select("id")
+            .eq("organization_id", ctx.orgId)
+            .eq("contact_id", ctx.contactId)
+            .maybeSingle();
+          if (lead) await ctx.db.from("leads").update({ is_urgent: true }).eq("id", lead.id);
+        }
+        return { ok: true, detalle, urgente };
+      },
+    }),
+
+    marcar_cliente_feliz: tool({
+      description:
+        "SILENCIOSO. Llamar SOLO si el cliente YA recibio el producto y esta conforme. La cortesia de quien todavia espera ('dale, gracias!') no cuenta.",
+      parameters: z.object({}),
+      execute: async () => {
+        await advanceLeadToRole(ctx.db, ctx.orgId, ctx.contactId, "happy");
+        return { ok: true };
+      },
+    }),
+
+    etiquetar: tool({
+      description:
+        "SILENCIOSO. Aplica una etiqueta que YA existe. Nunca inventar etiquetas nuevas.",
+      parameters: z.object({ etiqueta: z.string() }),
+      execute: async ({ etiqueta }) => {
+        const { data: tag } = await ctx.db
+          .from("tags")
+          .select("id")
+          .eq("organization_id", ctx.orgId)
+          .eq("name", etiqueta)
+          .maybeSingle();
+        if (!tag) return { ok: false, motivo: "la etiqueta no existe; no se inventa" };
+        await ctx.db.from("contact_tags").upsert({ contact_id: ctx.contactId, tag_id: tag.id });
+        return { ok: true };
+      },
+    }),
+  };
 }
