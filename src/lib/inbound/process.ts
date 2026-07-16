@@ -199,6 +199,9 @@ async function resolveContact(db: SupabaseClient, orgId: string, msg: InternalMe
                   phone: msg.phone,
                   phone_tail: phoneTail,
                   profile_name: msg.profileName,
+                      // El cliente escribio primero por este canal: consentimiento
+                      // implicito para recibir novedades de SU PEDIDO (utility) por aca.
+                      opt_in: true,
         })
         .select("id, profile_name")
         .single();
