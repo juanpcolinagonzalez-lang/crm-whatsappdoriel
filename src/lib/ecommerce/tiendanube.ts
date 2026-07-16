@@ -44,6 +44,18 @@ async function apiGet<T>(storeId: string, token: string, path: string): Promise<
       return res.json() as Promise<T>;
 }
 
+export type TiendanubeShippingAddress = {
+        address?: string;
+        number?: string;
+        floor?: string;
+        locality?: string;
+        city?: string;
+        province?: string;
+        zipcode?: string;
+        name?: string;
+        phone?: string;
+};
+
 export type TiendanubeOrder = {
       id: number;
       contact_phone?: string;
@@ -56,6 +68,8 @@ export type TiendanubeOrder = {
       shipping_tracking_number?: string;
       shipping_tracking_url?: string;
       shipping_carrier_name?: string;
+        shipping_option?: string;
+        shipping_address?: TiendanubeShippingAddress;
 };
 
 export async function fetchOrder(storeId: string, token: string, orderId: string) {
@@ -134,4 +148,18 @@ export function paymentKind(gateway: string | null | undefined): "transfer" | "o
       if (g.includes("transf") || g.includes("deposit")) return "transfer";
       if (g.includes("cash") || g.includes("efectivo") || g.includes("offline")) return "offline";
       return "gateway";
+}
+
+
+export function isMotoShipping(shippingOption: string | null | undefined): boolean {
+        return /moto/i.test(shippingOption ?? "");
+}
+
+export function formatShippingAddress(addr: TiendanubeShippingAddress | null | undefined): string {
+        if (!addr) return "";
+        const calle = [addr.address, addr.number].filter(Boolean).join(" ");
+        const partes = [calle, addr.floor ? `piso ${addr.floor}` : null, addr.locality || addr.city, addr.province].filter(
+                  (p) => p && String(p).trim().length > 0
+                );
+        return partes.join(", ");
 }
