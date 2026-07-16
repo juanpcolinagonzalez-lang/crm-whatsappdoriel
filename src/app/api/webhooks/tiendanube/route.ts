@@ -3,8 +3,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { config } from "@/lib/config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decrypt } from "@/lib/crypto";
-import { fetchOrder, getOrderStatusLabel, paymentKind } from "@/lib/ecommerce/tiendanube";
+import { fetchOrder, getOrderStatusLabel, paymentKind, isMotoShipping, formatShippingAddress } from "@/lib/ecommerce/tiendanube";
 import { enqueueFlowForTrigger } from "@/lib/queue/enqueue";
+import { dispatchQueue } from "@/lib/queue/dispatch";
 import type { FlowTrigger } from "@/types/domain";
 
 export const runtime = "nodejs";
@@ -65,6 +66,30 @@ if (trigger && contactId) {
           }
           await enqueueFlowForTrigger(db, conn.organization_id, contactId, trigger, vars);
 }
+
+        // 4.5) Envio en moto: pedido pagado + medio de envio "MOTOMENSAJERIA" ->
+        // pedir confirmacion de direccion ANTES de despachar (evita ida y vuelta
+        // manual por WhatsApp). Independiente del gatillo principal: puede
+        // coexistir con "order_confirmed" en el mismo evento order/paid.
+        if (event.event === "order/paid" && contactId && isMotoShipping(order.shipping_option)) {
+                const direccion = formatShippingAddress(order.shipping_address);
+                if (direccion) {
+                          await enqueueFlowForTrigger(db, conn.organization_id, contactId, "confirm_address", {
+                                      "1": order.shipping_address?.name || "",
+                                      "2": String(order.id),
+                                      "3": direccion,
+                          });
+                }
+        }
+
+        // 5) Despachar la cola AHORA (no esperar al cron diario): si se encolo
+        // algo, sale en segundos en vez de hasta 24hs. El cron diario queda como
+        // red de respaldo/reintento para lo que falle acá.
+        try {
+                await dispatchQueue(db);
+        } catch (dispatchErr) {
+                console.error("[webhook tiendanube] error despachando cola:", dispatchErr);
+        }
   } catch (err) {
     console.error("[webhook tiendanube] error:", err);
   }
