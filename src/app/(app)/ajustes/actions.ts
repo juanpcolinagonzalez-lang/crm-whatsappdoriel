@@ -13,30 +13,27 @@ async function orgId(supabase: ReturnType<typeof createClient>): Promise<string 
 export async function saveBusinessConfig(_prev: unknown, formData: FormData): Promise<{ ok?: boolean; error?: string }> {
   const supabase = createClient();
   const org = await orgId(supabase);
-  if (!org) return { error: "Sin sesión." };
+  if (!org) return { error: "Sin sesion." };
 
-  const infoRaw = String(formData.get("business_info") ?? "{}");
+const infoRaw = String(formData.get("business_info") ?? "{}");
   let business_info: unknown;
   try {
     business_info = JSON.parse(infoRaw);
   } catch {
-    return { error: "La información del negocio no es un JSON válido." };
+    return { error: "La informacion del negocio no es un JSON valido." };
   }
 
-  const { error } = await supabase
-    .from("business_config")
-    .update({
-      agent_name: String(formData.get("agent_name") ?? ""),
-      brand_name: String(formData.get("brand_name") ?? ""),
-            owner_notify_phone: String(formData.get("owner_notify_phone") ?? ""),
-      base_prompt: String(formData.get("base_prompt") ?? ""),
-      business_info,
-      followup_enabled: formData.get("followup_enabled") === "on",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("organization_id", org);
+const { error } = await supabase
+  .from("business_config")
+  .update({
+    owner_notify_phone: String(formData.get("owner_notify_phone") ?? ""),
+    business_info,
+    followup_enabled: formData.get("followup_enabled") === "on",
+    updated_at: new Date().toISOString(),
+  })
+  .eq("organization_id", org);
 
-  if (error) return { error: "No se pudo guardar." };
+if (error) return { error: "No se pudo guardar." };
   revalidatePath("/ajustes");
   return { ok: true };
 }
