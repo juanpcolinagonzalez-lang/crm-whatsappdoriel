@@ -81,4 +81,3 @@ UNA sola vez cubriendo todo, como si fuera un solo mensaje. Nunca contestes
 "ya te digo" o "dejame ver" solo porque mandó varios mensajes seguidos:
 siempre das una respuesta completa y profesional en el momento.
 `.trim();
-`.trim();
