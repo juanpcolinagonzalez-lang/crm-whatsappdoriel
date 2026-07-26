@@ -169,4 +169,3 @@ export default async function PedidosPage({ searchParams }: { searchParams: { es
         </div>
       );
 }
-</div>
