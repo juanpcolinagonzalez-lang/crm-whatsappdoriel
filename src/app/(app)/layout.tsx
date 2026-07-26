@@ -7,6 +7,7 @@ const NAV = [
   { href: "/inicio", label: "Inicio", hint: "Resumen general" },
   { href: "/bandeja", label: "Bandeja", hint: "Chats en vivo" },
   { href: "/kanban", label: "Tablero", hint: "Leads" },
+  { href: "/clientes", label: "Clientes", hint: "Contactos" },
   { href: "/ajustes", label: "Ajustes", hint: "Agente y negocio" },
   { href: "/metricas", label: "Métricas", hint: "Rendimiento del agente" },
 ];
