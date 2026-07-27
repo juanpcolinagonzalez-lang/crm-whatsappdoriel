@@ -13,6 +13,7 @@ const NAV = [
   { href: "/ajustes", label: "Ajustes", hint: "Agente y negocio" },
   { href: "/personalizacion", label: "Personalizacion", hint: "Identidad del asistente" },
   { href: "/metricas", label: "Metricas", hint: "Rendimiento del agente" },
+  { href: "/plantillas", label: "Plantillas", hint: "Mensajes automaticos" },
   ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
