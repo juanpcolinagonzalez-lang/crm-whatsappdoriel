@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import TemplateToggle from "./TemplateToggle";
+import TemplatesManager from "./TemplatesManager";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function PlantillasPage() {
 
   const { data: templates } = await supabase
     .from("message_templates")
-    .select("id, meta_name, trigger, language, category, body, active, created_at")
+    .select("id, meta_name, trigger, language, category, body, active, default_variables, created_at")
     .eq("organization_id", orgId)
     .order("created_at", { ascending: false });
 
@@ -64,32 +64,7 @@ export default async function PlantillasPage() {
       </header>
 
       <div className="mx-auto max-w-5xl p-6 space-y-6">
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <div className="px-4 py-3 border-b border-slate-100">
-            <h2 className="text-sm font-semibold text-slate-800">Plantillas de mensajes</h2>
-            <p className="text-xs text-slate-500">Mensajes automaticos que Sol puede enviar segun el evento.</p>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {templateList.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-slate-500">Todavia no hay plantillas cargadas.</p>
-            ) : (
-              templateList.map((t) => (
-                <div key={t.id} className="px-4 py-3 flex items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium text-slate-800">{t.meta_name}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{t.trigger}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{t.language}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{t.category}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">{t.body}</p>
-                  </div>
-                  <TemplateToggle id={t.id} active={t.active} />
-                </div>
-              ))
-            )}
-          </div>
-        </section>
+        <TemplatesManager templates={templateList} />
 
         <section className="rounded-xl border border-slate-200 bg-white">
           <div className="px-4 py-3 border-b border-slate-100">
