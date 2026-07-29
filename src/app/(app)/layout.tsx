@@ -15,6 +15,7 @@ const NAV = [
   { href: "/metricas", label: "Metricas", hint: "Rendimiento del agente" },
   { href: "/plantillas", label: "Plantillas", hint: "Mensajes automaticos" },
   { href: "/conocimiento", label: "Conocimiento", hint: "Base de productos" },
+  { href: "/actividad", label: "Actividad del agente", hint: "QA y correcciones" },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
