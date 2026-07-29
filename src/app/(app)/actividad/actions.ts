@@ -40,3 +40,20 @@ export async function descartar(reviewId: string): Promise<void> {
   await supabase.from("qa_reviews").update({ resolved: true }).eq("id", reviewId);
   revalidatePath("/actividad");
 }
+
+/**
+ * Crea una correccion activa con un texto propio (cuando el dueño no esta
+ * de acuerdo con la sugerencia del QA) y marca la revision como resuelta.
+ */
+export async function proponerCorreccion(reviewId: string, formData: FormData): Promise<void> {
+  const supabase = createClient();
+  const org = await orgId(supabase);
+  if (!org) return;
+
+  const body = String(formData.get("texto") || "").trim();
+  if (body) {
+    await supabase.from("agent_notes").insert({ organization_id: org, body, active: true, source: "owner" });
+  }
+  await supabase.from("qa_reviews").update({ resolved: true }).eq("id", reviewId);
+  revalidatePath("/actividad");
+}
