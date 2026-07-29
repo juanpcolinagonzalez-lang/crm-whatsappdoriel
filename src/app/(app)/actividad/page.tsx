@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { convertirEnCorreccion, descartar } from "./actions";
+import { convertirEnCorreccion, descartar, proponerCorreccion } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +28,7 @@ export default async function ActividadPage() {
         <h1 className="text-lg font-semibold text-slate-900">Actividad del agente</h1>
         <p className="text-sm text-slate-500">
           Revision nocturna de calidad: en que fallo el agente y que correccion sugiere. Convertila en una
-          correccion activa o descartala si no aplica.
+          correccion activa, descartala si no aplica, o escribi tu propia correccion si preferis otro enfoque.
         </p>
       </header>
 
@@ -71,7 +71,7 @@ export default async function ActividadPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
                     {convId && (
                       <a
                         href={`/bandeja?c=${convId}`}
@@ -90,6 +90,26 @@ export default async function ActividadPage() {
                         Descartar
                       </button>
                     </form>
+                    <details className="w-full">
+                      <summary className="cursor-pointer list-none inline-block rounded-lg px-3 py-1.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100">
+                        Proponer mi propia correccion
+                      </summary>
+                      <form
+                        action={proponerCorreccion.bind(null, r.id)}
+                        className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start"
+                      >
+                        <textarea
+                          name="texto"
+                          required
+                          rows={2}
+                          placeholder="Escribi vos la correccion que el agente deberia seguir..."
+                          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                        <button className="rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-900">
+                          Guardar correccion
+                        </button>
+                      </form>
+                    </details>
                   </div>
                 </li>
               );
