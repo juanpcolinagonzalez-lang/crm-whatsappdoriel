@@ -132,6 +132,9 @@ export function makeTools(ctx: ToolCtx) {
         }
 
         const raw = (order.data ?? {}) as Record<string, unknown>;
+        // El numero que el cliente conoce es el correlativo de la tienda
+        // (raw.number), NUNCA el id interno de Tiendanube (external_id).
+        const numeroPedido = raw.number ? String(raw.number) : order.external_id;
         const paymentStatus = String(raw.payment_status ?? "");
         const shippingStatus = String(raw.shipping_status ?? "");
         const pickupType = String(raw.shipping_pickup_type ?? "");
@@ -143,10 +146,10 @@ export function makeTools(ctx: ToolCtx) {
           paymentStatus === "paid"
             ? "confirmado"
             : paymentStatus === "pending"
-            ? "pendiente_de_revision"
-            : paymentStatus === "voided" || paymentStatus === "refunded"
-            ? "anulado"
-            : "en_revision";
+              ? "pendiente_de_revision"
+              : paymentStatus === "voided" || paymentStatus === "refunded"
+                ? "anulado"
+                : "en_revision";
 
         const tipoEntrega = pickupType === "pickup" ? "retiro_en_local" : "envio";
         const listoParaRetirar =
@@ -155,7 +158,7 @@ export function makeTools(ctx: ToolCtx) {
         return {
           encontrado: true,
           estado: getOrderStatusLabel(order.status_raw),
-          pedido: order.external_id,
+          pedido: numeroPedido,
           pago,
           tipo_entrega: tipoEntrega,
           listo_para_retirar: listoParaRetirar,
@@ -166,8 +169,8 @@ export function makeTools(ctx: ToolCtx) {
             tipoEntrega === "retiro_en_local"
               ? "usar SOLO la direccion y horario de retiro que estan en la informacion del negocio; nunca inventar otros"
               : trackingUrl
-              ? "si el cliente pide seguir el envio, compartir tracking_url tal cual (es el link real del transportista); nunca inventar ni componer otro"
-              : undefined,
+                ? "si el cliente pide seguir el envio, compartir tracking_url tal cual (es el link real del transportista); nunca inventar ni componer otro"
+                : undefined,
         };
       },
     }),
