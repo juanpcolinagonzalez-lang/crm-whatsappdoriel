@@ -8,6 +8,7 @@ const NAV = [
   { href: "/inicio", label: "Inicio", hint: "Resumen general" },
   { href: "/bandeja", label: "Bandeja", hint: "Chats en vivo" },
   { href: "/conversaciones", label: "Conversaciones", hint: "Hilos con contadores" },
+  { href: "/postventa", label: "Post-venta", hint: "Reclamos y seguimientos" },
   { href: "/kanban", label: "Tablero", hint: "Leads" },
   { href: "/clientes", label: "Clientes", hint: "Contactos" },
   { href: "/pedidos", label: "Pedidos", hint: "Pedidos de la tienda" },
