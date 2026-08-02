@@ -6,6 +6,7 @@
               { "path": "/api/cron/qa", "schedule": "0 4 * * *" },
               { "path": "/api/cron/post-delivery", "schedule": "0 5 * * *" },
               { "path": "/api/cron/lead-expiry", "schedule": "0 6 * * *" },
-              { "path": "/api/cron/urgent-digest", "schedule": "0 12 * * *" }
+              { "path": "/api/cron/urgent-digest", "schedule": "0 12 * * *" },
+            { "path": "/api/cron/post-sale-review", "schedule": "0 7 * * *" }
       ]
 }
